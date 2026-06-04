@@ -12,7 +12,7 @@ ALCHEMY_API_KEY = os.getenv("ALCHEMY_API_KEY")
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
 ETHERSCAN_API_BASE_URL = os.getenv(
     "ETHERSCAN_API_BASE_URL",
-    "https://api.etherscan.io/api"
+    "https://api.etherscan.io/v2/api"
 )
 ETHERSCAN_CHAIN_ID = os.getenv("ETHERSCAN_CHAIN_ID", "1")
 DATABASE_URL = os.getenv("DATABASE_URL")

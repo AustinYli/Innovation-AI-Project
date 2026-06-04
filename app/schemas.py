@@ -40,6 +40,18 @@ class WalletFeatures(BaseModel):
     feature_flags: list[str]
 
 
+class ScoreRule(BaseModel):
+    rule: str
+    points: float
+    reason: str
+
+
+class ScoreBreakdown(BaseModel):
+    base_score: float
+    final_score: float
+    rules: list[ScoreRule]
+
+
 class WalletCheckResponse(BaseModel):
     wallet_address: str
     normalized_wallet_address: str
@@ -50,5 +62,6 @@ class WalletCheckResponse(BaseModel):
     human_likelihood: str
     trust_tier: str
     confidence_score: float
+    score_breakdown: ScoreBreakdown
     risk_flags: list[str]
     message: str

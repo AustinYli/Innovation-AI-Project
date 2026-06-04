@@ -1,6 +1,12 @@
 from urllib.parse import urlencode
 from urllib.request import urlopen
 import json
+import ssl
+
+try:
+    import certifi
+except ImportError:
+    certifi = None
 
 from app.core.config import (
     ETHERSCAN_API_BASE_URL,
@@ -37,7 +43,13 @@ class EtherscanClient:
         }
         url = f"{self.base_url}?{urlencode(query_params)}"
 
-        with urlopen(url, timeout=self.timeout_seconds) as response:
+        context = (
+            ssl.create_default_context(cafile=certifi.where())
+            if certifi
+            else None
+        )
+
+        with urlopen(url, timeout=self.timeout_seconds, context=context) as response:
             payload = response.read().decode("utf-8")
             return json.loads(payload)
 

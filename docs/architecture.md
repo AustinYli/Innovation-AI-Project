@@ -51,3 +51,5 @@ The scoring system will use features such as:
 - contract interaction ratio
 - shared funding sources
 - Sybil risk signals
+
+week 2:

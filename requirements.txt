@@ -1,7 +1,9 @@
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
+certifi==2025.11.12
 click==8.4.1
+eth-hash[pycryptodome]==0.8.0
 eth-utils==5.3.1
 fastapi==0.136.3
 h11==0.16.0

@@ -63,11 +63,21 @@ def validate_wallet_address(wallet_address: str) -> WalletValidationResult:
         and cleaned_address != cleaned_address.upper()
     )
     if has_mixed_case and is_checksum_address:
-        if not is_checksum_address(cleaned_address):
+        try:
+            checksum_is_valid = is_checksum_address(cleaned_address)
+        except ImportError:
+            checksum_is_valid = None
+
+        if checksum_is_valid is False:
             raise WalletValidationError(
                 "mixed-case wallet_address has an invalid EIP-55 checksum"
             )
-        notes.append("Mixed-case address passed EIP-55 checksum validation.")
+        if checksum_is_valid is True:
+            notes.append("Mixed-case address passed EIP-55 checksum validation.")
+        else:
+            notes.append(
+                "Mixed-case address accepted; install eth-hash[pycryptodome] to enforce EIP-55 checksum validation."
+            )
     elif has_mixed_case:
         notes.append(
             "Mixed-case address accepted; install eth-utils to enforce EIP-55 checksum validation."

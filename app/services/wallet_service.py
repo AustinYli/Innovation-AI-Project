@@ -1,5 +1,6 @@
 from app.services.etherscan_client import EtherscanClient
 from app.services.feature_service import extract_wallet_features
+from app.services.scoring_service import score_wallet_features
 from app.services.validation_service import validate_wallet_address
 
 
@@ -15,6 +16,8 @@ def ingest_wallet(wallet_address: str):
     if provider_profile.get("has_contract_code"):
         risk_flags.append("contract_address")
 
+    score = score_wallet_features(features, risk_flags)
+
     return {
         "wallet_address": validation.original_address,
         "normalized_wallet_address": validation.normalized_address,
@@ -26,9 +29,10 @@ def ingest_wallet(wallet_address: str):
         },
         "provider_profile": provider_profile,
         "features": features,
-        "human_likelihood": "unknown",
-        "trust_tier": "unscored",
-        "confidence_score": 0.0,
-        "risk_flags": sorted(set(risk_flags)),
-        "message": "Wallet passed validation and feature extraction. Scoring pipeline not implemented yet."
+        "human_likelihood": score["human_likelihood"],
+        "trust_tier": score["trust_tier"],
+        "confidence_score": score["confidence_score"],
+        "score_breakdown": score["score_breakdown"],
+        "risk_flags": score["risk_flags"],
+        "message": "Wallet passed validation, feature extraction, and heuristic scoring."
     }
