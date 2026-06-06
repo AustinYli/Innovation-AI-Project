@@ -52,12 +52,21 @@ class ScoreBreakdown(BaseModel):
     rules: list[ScoreRule]
 
 
-class WalletCheckResponse(BaseModel):
+class WalletFeatureExtractionResponse(BaseModel):
     wallet_address: str
     normalized_wallet_address: str
     is_valid: bool
     validation: WalletValidationDetails
     provider_profile: WalletProviderProfile
+    features: WalletFeatures
+    message: str
+
+
+class WalletScoreResponse(BaseModel):
+    wallet_address: str
+    normalized_wallet_address: str
+    is_valid: bool
+    validation: WalletValidationDetails
     features: WalletFeatures
     human_likelihood: str
     trust_tier: str
@@ -65,3 +74,7 @@ class WalletCheckResponse(BaseModel):
     score_breakdown: ScoreBreakdown
     risk_flags: list[str]
     message: str
+
+
+class WalletCheckResponse(WalletScoreResponse):
+    provider_profile: WalletProviderProfile

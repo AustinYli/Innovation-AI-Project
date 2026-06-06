@@ -16,3 +16,4 @@ ETHERSCAN_API_BASE_URL = os.getenv(
 )
 ETHERSCAN_CHAIN_ID = os.getenv("ETHERSCAN_CHAIN_ID", "1")
 DATABASE_URL = os.getenv("DATABASE_URL")
+TRUST_API_KEY = os.getenv("TRUST_API_KEY") or os.getenv("API_KEY")
