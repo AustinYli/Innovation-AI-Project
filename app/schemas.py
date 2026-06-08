@@ -76,5 +76,36 @@ class WalletScoreResponse(BaseModel):
     message: str
 
 
-class WalletCheckResponse(WalletScoreResponse):
-    provider_profile: WalletProviderProfile
+class WalletCheckResponse(BaseModel):
+    wallet_id: int | None = None
+    wallet_address: str
+    normalized_wallet_address: str
+    is_valid: bool
+    human_likelihood: str
+    trust_tier: str
+    confidence_score: float
+    risk_flags: list[str]
+    storage_status: str
+    summary: str
+
+
+class WalletProof(BaseModel):
+    proof_id: str
+    proof_version: str
+    behavior_fingerprint_hash: str
+    issued_at: str
+    expires_at: str
+    valid_for_hours: int
+
+
+class WalletProofResponse(BaseModel):
+    wallet_id: int | None = None
+    wallet_address: str
+    normalized_wallet_address: str
+    human_likelihood: str
+    trust_tier: str
+    confidence_score: float
+    risk_flags: list[str]
+    proof: WalletProof
+    storage_status: str
+    message: str

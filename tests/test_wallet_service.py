@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from app.services.wallet_service import (
     extract_wallet_feature_response,
+    generate_proof_response,
     ingest_wallet,
     score_wallet,
 )
@@ -26,17 +27,29 @@ class FakeEtherscanClient:
 
 class WalletServiceTests(unittest.TestCase):
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
-    def test_ingest_wallet_returns_features_and_score(self):
+    @patch(
+        "app.services.wallet_service.store_wallet_check_snapshot",
+        return_value={
+            "wallet_id": 1,
+            "feature_snapshot_id": 10,
+            "score_snapshot_id": 20,
+            "storage_status": "stored",
+        },
+    )
+    def test_ingest_wallet_returns_public_summary(self, _store_snapshot):
         result = ingest_wallet(
             "0x742d35cc6634c0532925a3b844bc454e4438f44e"
         )
 
+        self.assertEqual(result["wallet_id"], 1)
+        self.assertEqual(result["storage_status"], "stored")
         self.assertTrue(result["is_valid"])
-        self.assertEqual(result["features"]["balance_level"], "funded")
-        self.assertEqual(result["features"]["activity_level"], "moderate")
         self.assertIn(result["human_likelihood"], ["medium", "high"])
         self.assertGreater(result["confidence_score"], 0)
-        self.assertIn("score_breakdown", result)
+        self.assertIn("summary", result)
+        self.assertNotIn("features", result)
+        self.assertNotIn("provider_profile", result)
+        self.assertNotIn("score_breakdown", result)
 
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
     def test_extract_wallet_feature_response_omits_score(self):
@@ -59,6 +72,40 @@ class WalletServiceTests(unittest.TestCase):
         self.assertIn("confidence_score", result)
         self.assertIn("score_breakdown", result)
         self.assertNotIn("provider_profile", result)
+
+    @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch(
+        "app.services.wallet_service.store_wallet_check_snapshot",
+        return_value={
+            "wallet_id": 1,
+            "feature_snapshot_id": 10,
+            "score_snapshot_id": 20,
+            "storage_status": "stored",
+        },
+    )
+    @patch(
+        "app.services.wallet_service.store_wallet_proof_snapshot",
+        return_value={
+            "wallet_id": 1,
+            "proof_snapshot_id": 30,
+            "proof_storage_status": "stored",
+        },
+    )
+    def test_generate_proof_response_returns_public_proof(
+        self,
+        _store_proof,
+        _store_check,
+    ):
+        result = generate_proof_response(
+            "0x742d35cc6634c0532925a3b844bc454e4438f44e"
+        )
+
+        self.assertEqual(result["wallet_id"], 1)
+        self.assertEqual(result["storage_status"], "stored")
+        self.assertIn("proof", result)
+        self.assertIn("behavior_fingerprint_hash", result["proof"])
+        self.assertNotIn("features", result)
+        self.assertNotIn("score_breakdown", result)
 
 
 if __name__ == "__main__":
