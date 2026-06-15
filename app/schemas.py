@@ -5,6 +5,10 @@ class WalletCheckRequest(BaseModel):
     wallet_address: str
 
 
+class ProofVerifyRequest(BaseModel):
+    proof_id: str
+
+
 class WalletValidationDetails(BaseModel):
     validation_level: str
     normalized_address: str
@@ -92,9 +96,11 @@ class WalletCheckResponse(BaseModel):
 class WalletProof(BaseModel):
     proof_id: str
     proof_version: str
+    status: str
+    revocable: bool
     behavior_fingerprint_hash: str
     issued_at: str
-    expires_at: str
+    valid_until: str
     valid_for_hours: int
 
 
@@ -108,4 +114,51 @@ class WalletProofResponse(BaseModel):
     risk_flags: list[str]
     proof: WalletProof
     storage_status: str
+    message: str
+
+
+class WalletProofVerifyResponse(BaseModel):
+    proof_id: str
+    is_valid: bool
+    status: str
+    wallet_id: int | None = None
+    wallet_address: str | None = None
+    normalized_wallet_address: str | None = None
+    human_likelihood: str | None = None
+    trust_tier: str | None = None
+    confidence_score: float | None = None
+    issued_at: str | None = None
+    valid_until: str | None = None
+    revocable: bool | None = None
+    message: str
+
+
+class DashboardSummaryResponse(BaseModel):
+    database_status: str
+    total_wallets: int
+    total_feature_snapshots: int
+    total_score_snapshots: int
+    total_proofs: int
+    tier_distribution: dict[str, int]
+    human_likelihood_distribution: dict[str, int]
+    flagged_wallet_count: int
+    message: str
+
+
+class DashboardWalletRow(BaseModel):
+    wallet_id: int
+    wallet_address: str
+    normalized_wallet_address: str
+    created_at: str
+    human_likelihood: str | None = None
+    trust_tier: str | None = None
+    confidence_score: float | None = None
+    risk_flags: list[str]
+    scored_at: str | None = None
+
+
+class DashboardWalletListResponse(BaseModel):
+    database_status: str
+    count: int
+    wallets: list[DashboardWalletRow]
     message: str

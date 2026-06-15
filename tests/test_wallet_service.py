@@ -93,7 +93,7 @@ class WalletServiceTests(unittest.TestCase):
     )
     def test_generate_proof_response_returns_public_proof(
         self,
-        _store_proof,
+        store_proof,
         _store_check,
     ):
         result = generate_proof_response(
@@ -104,8 +104,13 @@ class WalletServiceTests(unittest.TestCase):
         self.assertEqual(result["storage_status"], "stored")
         self.assertIn("proof", result)
         self.assertIn("behavior_fingerprint_hash", result["proof"])
+        self.assertEqual(result["proof"]["status"], "active")
+        self.assertTrue(result["proof"]["revocable"])
+        self.assertIn("valid_until", result["proof"])
+        self.assertNotIn("expires_at", result["proof"])
         self.assertNotIn("features", result)
         self.assertNotIn("score_breakdown", result)
+        self.assertIsNotNone(store_proof.call_args.kwargs["score"])
 
 
 if __name__ == "__main__":

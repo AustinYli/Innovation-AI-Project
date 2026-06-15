@@ -1,4 +1,7 @@
-from sqlalchemy import select
+from datetime import timezone
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import joinedload
 
 from app.db.models import (
     Wallet,
@@ -79,6 +82,7 @@ def store_wallet_check_snapshot(pipeline: dict, score: dict) -> dict:
 def store_wallet_proof_snapshot(
     pipeline: dict,
     proof: dict,
+    score: dict | None = None,
     wallet_id: int | None = None,
 ) -> dict:
     session_factory = get_session_factory()
@@ -103,6 +107,15 @@ def store_wallet_proof_snapshot(
             for key, value in proof.items()
             if key not in {"issued_at_datetime", "expires_at_datetime"}
         }
+        if score:
+            proof_payload.update(
+                {
+                    "human_likelihood": score["human_likelihood"],
+                    "trust_tier": score["trust_tier"],
+                    "confidence_score": score["confidence_score"],
+                    "risk_flags": score["risk_flags"],
+                }
+            )
 
         proof_snapshot = WalletProofSnapshot(
             wallet_id=wallet_id,
@@ -123,3 +136,203 @@ def store_wallet_proof_snapshot(
 
         session.commit()
         return result
+
+
+def get_wallet_proof(proof_id: str) -> dict:
+    session_factory = get_session_factory()
+    if session_factory is None:
+        return {
+            "found": False,
+            "database_status": (
+                "skipped_database_invalid_url"
+                if get_database_error()
+                else "skipped_database_not_configured"
+            ),
+        }
+
+    with session_factory() as session:
+        proof_snapshot = session.scalar(
+            select(WalletProofSnapshot)
+            .where(WalletProofSnapshot.proof_id == proof_id)
+            .options(joinedload(WalletProofSnapshot.wallet))
+        )
+
+        if proof_snapshot is None:
+            return {
+                "found": False,
+                "database_status": "connected",
+            }
+
+        issued_at = proof_snapshot.issued_at
+        expires_at = proof_snapshot.expires_at
+        if issued_at.tzinfo is None:
+            issued_at = issued_at.replace(tzinfo=timezone.utc)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        return {
+            "found": True,
+            "database_status": "connected",
+            "proof_id": proof_snapshot.proof_id,
+            "wallet_id": proof_snapshot.wallet_id,
+            "wallet_address": proof_snapshot.wallet.wallet_address,
+            "normalized_wallet_address": proof_snapshot.wallet.normalized_wallet_address,
+            "proof_payload": proof_snapshot.proof_payload,
+            "issued_at": issued_at,
+            "valid_until": expires_at,
+        }
+
+
+def _latest_scores_by_wallet(session) -> dict[int, WalletScoreSnapshot]:
+    latest_scores = {}
+    score_snapshots = session.scalars(
+        select(WalletScoreSnapshot).order_by(WalletScoreSnapshot.scored_at.desc())
+    )
+    for score_snapshot in score_snapshots:
+        if score_snapshot.wallet_id not in latest_scores:
+            latest_scores[score_snapshot.wallet_id] = score_snapshot
+    return latest_scores
+
+
+def get_dashboard_summary() -> dict:
+    session_factory = get_session_factory()
+    if session_factory is None:
+        return {
+            "database_status": (
+                "skipped_database_invalid_url"
+                if get_database_error()
+                else "skipped_database_not_configured"
+            ),
+            "total_wallets": 0,
+            "total_feature_snapshots": 0,
+            "total_score_snapshots": 0,
+            "total_proofs": 0,
+            "tier_distribution": {},
+            "human_likelihood_distribution": {},
+            "flagged_wallet_count": 0,
+        }
+
+    with session_factory() as session:
+        latest_scores = _latest_scores_by_wallet(session)
+        tier_distribution = {}
+        likelihood_distribution = {}
+        flagged_wallet_count = 0
+
+        for score_snapshot in latest_scores.values():
+            tier_distribution[score_snapshot.trust_tier] = (
+                tier_distribution.get(score_snapshot.trust_tier, 0) + 1
+            )
+            likelihood_distribution[score_snapshot.human_likelihood] = (
+                likelihood_distribution.get(score_snapshot.human_likelihood, 0) + 1
+            )
+            if score_snapshot.risk_flags:
+                flagged_wallet_count += 1
+
+        return {
+            "database_status": "connected",
+            "total_wallets": session.scalar(select(func.count()).select_from(Wallet)),
+            "total_feature_snapshots": session.scalar(
+                select(func.count()).select_from(WalletFeatureSnapshot)
+            ),
+            "total_score_snapshots": session.scalar(
+                select(func.count()).select_from(WalletScoreSnapshot)
+            ),
+            "total_proofs": session.scalar(
+                select(func.count()).select_from(WalletProofSnapshot)
+            ),
+            "tier_distribution": tier_distribution,
+            "human_likelihood_distribution": likelihood_distribution,
+            "flagged_wallet_count": flagged_wallet_count,
+        }
+
+
+def list_recent_wallets(limit: int = 20) -> dict:
+    session_factory = get_session_factory()
+    if session_factory is None:
+        return {
+            "database_status": (
+                "skipped_database_invalid_url"
+                if get_database_error()
+                else "skipped_database_not_configured"
+            ),
+            "wallets": [],
+        }
+
+    with session_factory() as session:
+        latest_scores = _latest_scores_by_wallet(session)
+        wallets = session.scalars(
+            select(Wallet).order_by(Wallet.created_at.desc()).limit(limit)
+        ).all()
+
+        return {
+            "database_status": "connected",
+            "wallets": [
+                _wallet_dashboard_row(wallet, latest_scores.get(wallet.id))
+                for wallet in wallets
+            ],
+        }
+
+
+def list_flagged_wallets(limit: int = 20) -> dict:
+    session_factory = get_session_factory()
+    if session_factory is None:
+        return {
+            "database_status": (
+                "skipped_database_invalid_url"
+                if get_database_error()
+                else "skipped_database_not_configured"
+            ),
+            "wallets": [],
+        }
+
+    with session_factory() as session:
+        latest_scores = _latest_scores_by_wallet(session)
+        wallet_ids = [
+            wallet_id
+            for wallet_id, score_snapshot in latest_scores.items()
+            if score_snapshot.risk_flags
+        ]
+
+        if not wallet_ids:
+            return {
+                "database_status": "connected",
+                "wallets": [],
+            }
+
+        wallets = session.scalars(
+            select(Wallet).where(Wallet.id.in_(wallet_ids))
+        ).all()
+        wallet_by_id = {wallet.id: wallet for wallet in wallets}
+
+        flagged_rows = [
+            _wallet_dashboard_row(wallet_by_id[wallet_id], latest_scores[wallet_id])
+            for wallet_id in wallet_ids
+            if wallet_id in wallet_by_id
+        ]
+        flagged_rows.sort(key=lambda row: row["confidence_score"] or 0)
+
+        return {
+            "database_status": "connected",
+            "wallets": flagged_rows[:limit],
+        }
+
+
+def _wallet_dashboard_row(
+    wallet: Wallet,
+    score_snapshot: WalletScoreSnapshot | None,
+) -> dict:
+    return {
+        "wallet_id": wallet.id,
+        "wallet_address": wallet.wallet_address,
+        "normalized_wallet_address": wallet.normalized_wallet_address,
+        "created_at": wallet.created_at.isoformat(),
+        "human_likelihood": (
+            score_snapshot.human_likelihood if score_snapshot else None
+        ),
+        "trust_tier": score_snapshot.trust_tier if score_snapshot else None,
+        "confidence_score": (
+            score_snapshot.confidence_score if score_snapshot else None
+        ),
+        "risk_flags": score_snapshot.risk_flags if score_snapshot else [],
+        "scored_at": score_snapshot.scored_at.isoformat() if score_snapshot else None,
+    }

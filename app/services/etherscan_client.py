@@ -86,6 +86,26 @@ class EtherscanClient:
         })
         return data.get("result")
 
+    def get_latest_block_number(self) -> int | None:
+        data = self._get({
+            "module": "proxy",
+            "action": "eth_blockNumber",
+        })
+        result = data.get("result")
+        if not result:
+            return None
+        return int(result, 16)
+
+    def get_block_by_number(self, block_number: int) -> dict | None:
+        data = self._get({
+            "module": "proxy",
+            "action": "eth_getBlockByNumber",
+            "tag": hex(block_number),
+            "boolean": "true",
+        })
+        result = data.get("result")
+        return result if isinstance(result, dict) else None
+
     def get_normal_transactions(
         self,
         wallet_address: str,

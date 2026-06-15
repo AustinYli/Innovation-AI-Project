@@ -62,9 +62,11 @@ def generate_wallet_proof(pipeline: dict, score: dict) -> dict:
     return {
         "proof_id": proof_id,
         "proof_version": PROOF_VERSION,
+        "status": "active",
+        "revocable": True,
         "behavior_fingerprint_hash": behavior_fingerprint_hash,
         "issued_at": issued_at.isoformat(),
-        "expires_at": expires_at.isoformat(),
+        "valid_until": expires_at.isoformat(),
         "valid_for_hours": PROOF_VALID_FOR_HOURS,
         "issued_at_datetime": issued_at,
         "expires_at_datetime": expires_at,

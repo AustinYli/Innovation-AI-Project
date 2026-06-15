@@ -29,11 +29,15 @@ class ProofServiceTests(unittest.TestCase):
 
         self.assertTrue(proof["proof_id"].startswith("proof_"))
         self.assertEqual(proof["proof_version"], "v1")
+        self.assertEqual(proof["status"], "active")
+        self.assertTrue(proof["revocable"])
         self.assertEqual(len(proof["behavior_fingerprint_hash"]), 64)
         self.assertNotIn(
             pipeline["normalized_wallet_address"],
             proof["behavior_fingerprint_hash"],
         )
+        self.assertIn("valid_until", proof)
+        self.assertNotIn("expires_at", proof)
         self.assertEqual(proof["valid_for_hours"], 24)
 
 

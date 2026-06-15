@@ -1,4 +1,5 @@
 from app.db.repository import (
+    get_wallet_proof,
     store_wallet_check_snapshot,
     store_wallet_proof_snapshot,
 )
@@ -108,6 +109,7 @@ def generate_proof_response(wallet_address: str):
     proof_storage = store_wallet_proof_snapshot(
         pipeline,
         proof,
+        score=score,
         wallet_id=storage["wallet_id"],
     )
 
@@ -116,9 +118,11 @@ def generate_proof_response(wallet_address: str):
         for key in [
             "proof_id",
             "proof_version",
+            "status",
+            "revocable",
             "behavior_fingerprint_hash",
             "issued_at",
-            "expires_at",
+            "valid_until",
             "valid_for_hours",
         ]
     }
@@ -134,4 +138,55 @@ def generate_proof_response(wallet_address: str):
         "proof": public_proof,
         "storage_status": proof_storage["proof_storage_status"],
         "message": "Reusable wallet trust proof generated.",
+    }
+
+
+def verify_proof_response(proof_id: str):
+    proof_record = get_wallet_proof(proof_id)
+
+    if not proof_record["found"]:
+        database_status = proof_record["database_status"]
+        if database_status != "connected":
+            return {
+                "proof_id": proof_id,
+                "is_valid": False,
+                "status": "unavailable",
+                "message": f"Proof verification unavailable: {database_status}.",
+            }
+
+        return {
+            "proof_id": proof_id,
+            "is_valid": False,
+            "status": "not_found",
+            "message": "Proof was not found.",
+        }
+
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    status = "active"
+    is_valid = True
+    message = "Proof is valid and active."
+
+    if proof_record["valid_until"] <= now:
+        status = "expired"
+        is_valid = False
+        message = "Proof has expired."
+
+    proof_payload = proof_record["proof_payload"]
+
+    return {
+        "proof_id": proof_record["proof_id"],
+        "is_valid": is_valid,
+        "status": status,
+        "wallet_id": proof_record["wallet_id"],
+        "wallet_address": proof_record["wallet_address"],
+        "normalized_wallet_address": proof_record["normalized_wallet_address"],
+        "human_likelihood": proof_payload.get("human_likelihood"),
+        "trust_tier": proof_payload.get("trust_tier"),
+        "confidence_score": proof_payload.get("confidence_score"),
+        "issued_at": proof_record["issued_at"].isoformat(),
+        "valid_until": proof_record["valid_until"].isoformat(),
+        "revocable": proof_payload.get("revocable", True),
+        "message": message,
     }
