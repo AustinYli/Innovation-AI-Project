@@ -4,7 +4,10 @@ import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
 const h = React.createElement;
 
 const DEFAULT_WALLET = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-const DEFAULT_API_BASE = "http://127.0.0.1:8000";
+const DEFAULT_API_BASE =
+  new URLSearchParams(window.location.search).get("apiBaseUrl")
+  || import.meta.env?.VITE_API_BASE_URL
+  || "http://127.0.0.1:8000";
 
 function compactAddress(value) {
   if (!value || value.length < 16) return value || "None";
