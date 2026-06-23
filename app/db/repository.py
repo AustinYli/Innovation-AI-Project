@@ -183,15 +183,30 @@ def get_wallet_proof(proof_id: str) -> dict:
         }
 
 
-def _latest_scores_by_wallet(session) -> dict[int, WalletScoreSnapshot]:
-    latest_scores = {}
+def _latest_scores_by_wallet(
+    session,
+    wallet_ids: list[int] | None = None,
+) -> dict[int, WalletScoreSnapshot]:
+    latest_score_ids = select(func.max(WalletScoreSnapshot.id).label("id"))
+    if wallet_ids is not None:
+        if not wallet_ids:
+            return {}
+        latest_score_ids = latest_score_ids.where(
+            WalletScoreSnapshot.wallet_id.in_(wallet_ids)
+        )
+
+    latest_score_ids = latest_score_ids.group_by(
+        WalletScoreSnapshot.wallet_id
+    ).subquery()
     score_snapshots = session.scalars(
-        select(WalletScoreSnapshot).order_by(WalletScoreSnapshot.scored_at.desc())
-    )
-    for score_snapshot in score_snapshots:
-        if score_snapshot.wallet_id not in latest_scores:
-            latest_scores[score_snapshot.wallet_id] = score_snapshot
-    return latest_scores
+        select(WalletScoreSnapshot).where(
+            WalletScoreSnapshot.id.in_(select(latest_score_ids.c.id))
+        )
+    ).all()
+    return {
+        score_snapshot.wallet_id: score_snapshot
+        for score_snapshot in score_snapshots
+    }
 
 
 def get_dashboard_summary() -> dict:
@@ -259,10 +274,13 @@ def list_recent_wallets(limit: int = 20) -> dict:
         }
 
     with session_factory() as session:
-        latest_scores = _latest_scores_by_wallet(session)
         wallets = session.scalars(
             select(Wallet).order_by(Wallet.created_at.desc()).limit(limit)
         ).all()
+        latest_scores = _latest_scores_by_wallet(
+            session,
+            wallet_ids=[wallet.id for wallet in wallets],
+        )
 
         return {
             "database_status": "connected",

@@ -1,0 +1,58 @@
+{
+  "benchmark_status": "failed",
+  "base_url": "https://innovation-ai-project-production.up.railway.app",
+  "requests_per_endpoint": 3,
+  "total_failures": 9,
+  "results": [
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/",
+      "successes": 3,
+      "failures": 0,
+      "failure_details": [],
+      "requests": 3,
+      "min_ms": 99.87,
+      "mean_ms": 118.28,
+      "p50_ms": 103.75,
+      "p95_ms": 151.22,
+      "max_ms": 151.22
+    },
+    {
+      "name": "dashboard summary",
+      "method": "GET",
+      "path": "/dashboard/summary",
+      "successes": 0,
+      "failures": 3,
+      "failure_details": [
+        "GET /dashboard/summary returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/summary returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/summary returned 500: Unexpected server error. Check server logs for details."
+      ]
+    },
+    {
+      "name": "recent wallets",
+      "method": "GET",
+      "path": "/dashboard/recent_wallets?limit=8",
+      "successes": 0,
+      "failures": 3,
+      "failure_details": [
+        "GET /dashboard/recent_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/recent_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/recent_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details."
+      ]
+    },
+    {
+      "name": "flagged wallets",
+      "method": "GET",
+      "path": "/dashboard/flagged_wallets?limit=8",
+      "successes": 0,
+      "failures": 3,
+      "failure_details": [
+        "GET /dashboard/flagged_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/flagged_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details.",
+        "GET /dashboard/flagged_wallets?limit=8 returned 500: Unexpected server error. Check server logs for details."
+      ]
+    }
+  ]
+}
