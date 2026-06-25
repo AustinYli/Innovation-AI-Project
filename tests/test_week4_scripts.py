@@ -15,6 +15,13 @@ class FakeTrustApiClient:
         self.calls.append((method, path, payload))
         responses = {
             "/": {"status": "ok"},
+            "/health": {"status": "ok"},
+            "/debug/env": {
+                "environment": {
+                    "trust_api_key": {"configured": True},
+                    "etherscan_api_key": {"configured": True},
+                },
+            },
             "/check_wallet": {
                 "human_likelihood": "high",
                 "trust_tier": "gold",
@@ -45,9 +52,10 @@ class Week4ScriptTests(unittest.TestCase):
         self.assertEqual(result["simulation_status"], "passed")
         self.assertEqual(result["proof_id"], "proof_test")
         self.assertEqual(result["proof_status"], "active")
-        self.assertEqual(len(result["steps"]), 5)
+        self.assertEqual(len(result["steps"]), 6)
+        self.assertIn("trust_api_key", result["configured_environment_keys"])
         self.assertEqual(
-            client.calls[3],
+            client.calls[4],
             ("POST", "/verify_proof", {"proof_id": "proof_test"}),
         )
 
@@ -71,8 +79,8 @@ class Week4ScriptTests(unittest.TestCase):
         )
 
         self.assertEqual(result["benchmark_status"], "passed")
-        self.assertEqual(len(result["results"]), 4)
-        self.assertEqual(len(client.calls), 8)
+        self.assertEqual(len(result["results"]), 5)
+        self.assertEqual(len(client.calls), 10)
         self.assertNotIn("/check_wallet", [call[1] for call in client.calls])
 
 

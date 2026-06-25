@@ -12,6 +12,8 @@ from app.db.session import init_db
 from app.schemas import (
     DashboardSummaryResponse,
     DashboardWalletListResponse,
+    DebugEnvResponse,
+    HealthResponse,
     ProofVerifyRequest,
     WalletCheckRequest,
     WalletCheckResponse,
@@ -24,6 +26,10 @@ from app.services.dashboard_service import (
     get_dashboard_summary_response,
     get_flagged_wallets_response,
     get_recent_wallets_response,
+)
+from app.services.health_service import (
+    get_debug_env_response,
+    get_health_response,
 )
 from app.services.wallet_service import (
     extract_wallet_feature_response,
@@ -120,6 +126,20 @@ def root():
         "message": "Proof-of-Human Trust API is running",
         "status": "ok"
     }
+
+
+@app.get("/health", response_model=HealthResponse)
+def health():
+    return get_health_response()
+
+
+@app.get(
+    "/debug/env",
+    response_model=DebugEnvResponse,
+    dependencies=protected_endpoint,
+)
+def debug_env():
+    return get_debug_env_response()
 
 
 @app.post(

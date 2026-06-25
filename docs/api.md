@@ -28,6 +28,86 @@ If the header is missing or wrong, the API returns:
 }
 ```
 
+## Week 5 Readiness Endpoints
+
+These endpoints make the deployed API easier to monitor and integrate.
+
+### Health check
+
+```bash
+curl -X GET "http://127.0.0.1:8000/health"
+```
+
+Use this for Railway checks, uptime checks, and quick deployment verification.
+
+Example response:
+
+```json
+{
+  "service": "wallet_trust_api",
+  "version": "0.1.0",
+  "status": "ok",
+  "checks": {
+    "database": {
+      "status": "connected",
+      "configured": true
+    },
+    "etherscan": {
+      "status": "configured",
+      "configured": true
+    },
+    "auth": {
+      "status": "configured",
+      "configured": true
+    }
+  },
+  "message": "Service is ready."
+}
+```
+
+### Safe environment debug
+
+```bash
+curl -X GET "http://127.0.0.1:8000/debug/env" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
+```
+
+Use this to confirm required environment variables exist without printing secret values.
+
+Example response:
+
+```json
+{
+  "service": "wallet_trust_api",
+  "version": "0.1.0",
+  "environment": {
+    "alchemy_api_key": {
+      "configured": true
+    },
+    "etherscan_api_key": {
+      "configured": true
+    },
+    "database_url": {
+      "configured": true
+    },
+    "trust_api_key": {
+      "configured": true
+    },
+    "proof_secret": {
+      "configured": true
+    }
+  },
+  "runtime": {
+    "cors_origins_count": 3,
+    "rate_limit_requests": 60,
+    "rate_limit_window_seconds": 60,
+    "proof_valid_for_hours": 24,
+    "log_level": "INFO"
+  },
+  "message": "Environment check loaded without exposing secret values."
+}
+```
+
 ## Rate Limiting
 
 Protected endpoints are rate limited per API key, client host, and endpoint path.
@@ -94,6 +174,8 @@ Use this when another app needs to check whether a saved proof is still `active`
 /score_wallet      Detailed scoring view with rule breakdown
 /generate_proof    Creates and stores a reusable trust proof
 /verify_proof      Checks whether a proof is valid right now
+/health            Production readiness check
+/debug/env         Safe environment configuration check
 /dashboard/summary          Dashboard totals from Supabase/Postgres
 /dashboard/recent_wallets   Latest stored wallets and scores
 /dashboard/flagged_wallets  Latest wallets with risk flags

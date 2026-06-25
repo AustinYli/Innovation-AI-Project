@@ -18,6 +18,7 @@ Current implementation:
 - React internal dashboard
 - Railway backend and frontend deployment configuration
 - Developer usage simulation and performance benchmark scripts
+- Production readiness endpoints: `/health` and `/debug/env`
 - Initial project structure
 - Architecture documentation
 
@@ -57,4 +58,19 @@ venv/bin/python scripts/benchmark_api.py \
   --base-url "https://innovation-ai-project-production.up.railway.app" \
   --requests 5 \
   --output docs/week4-performance-results.json
+```
+
+## Week 5 Verification
+
+Check deployed service readiness:
+
+```bash
+curl -X GET "https://innovation-ai-project-production.up.railway.app/health"
+```
+
+Check deployed configuration without exposing secrets:
+
+```bash
+curl -X GET "https://innovation-ai-project-production.up.railway.app/debug/env" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
 ```

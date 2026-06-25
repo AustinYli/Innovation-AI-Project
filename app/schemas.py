@@ -162,3 +162,36 @@ class DashboardWalletListResponse(BaseModel):
     count: int
     wallets: list[DashboardWalletRow]
     message: str
+
+
+class ServiceCheck(BaseModel):
+    status: str
+    configured: bool
+
+
+class HealthResponse(BaseModel):
+    service: str
+    version: str
+    status: str
+    checks: dict[str, ServiceCheck]
+    message: str
+
+
+class DebugEnvValue(BaseModel):
+    configured: bool
+
+
+class DebugRuntimeConfig(BaseModel):
+    cors_origins_count: int
+    rate_limit_requests: int
+    rate_limit_window_seconds: int
+    proof_valid_for_hours: int
+    log_level: str
+
+
+class DebugEnvResponse(BaseModel):
+    service: str
+    version: str
+    environment: dict[str, DebugEnvValue]
+    runtime: DebugRuntimeConfig
+    message: str

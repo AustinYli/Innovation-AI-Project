@@ -89,7 +89,8 @@ def run_benchmark(
     wallet_address: str,
 ) -> dict:
     endpoints = [
-        ("health", "GET", "/", None),
+        ("health", "GET", "/health", None),
+        ("debug env", "GET", "/debug/env", None),
         ("dashboard summary", "GET", "/dashboard/summary", None),
         ("recent wallets", "GET", "/dashboard/recent_wallets?limit=8", None),
         ("flagged wallets", "GET", "/dashboard/flagged_wallets?limit=8", None),

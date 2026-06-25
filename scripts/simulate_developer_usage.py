@@ -36,7 +36,8 @@ def run_simulation(client: TrustApiClient, wallet_address: str) -> dict:
         )
         return result.data
 
-    health = run_step("health check", "GET", "/")
+    health = run_step("health check", "GET", "/health")
+    debug_env = run_step("debug env", "GET", "/debug/env")
     wallet = run_step(
         "check wallet",
         "POST",
@@ -63,6 +64,11 @@ def run_simulation(client: TrustApiClient, wallet_address: str) -> dict:
         "base_url": client.base_url,
         "wallet_address": wallet_address,
         "health_status": health.get("status"),
+        "configured_environment_keys": [
+            key
+            for key, value in debug_env.get("environment", {}).items()
+            if value.get("configured")
+        ],
         "human_likelihood": wallet.get("human_likelihood"),
         "trust_tier": wallet.get("trust_tier"),
         "confidence_score": wallet.get("confidence_score"),
