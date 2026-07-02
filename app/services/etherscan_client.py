@@ -110,6 +110,7 @@ class EtherscanClient:
         self,
         wallet_address: str,
         offset: int = 100,
+        sort: str = "asc",
     ) -> list[dict]:
         data = self._get({
             "module": "account",
@@ -119,7 +120,43 @@ class EtherscanClient:
             "endblock": "99999999",
             "page": "1",
             "offset": str(offset),
-            "sort": "asc",
+            "sort": sort,
+        })
+        result = data.get("result")
+        if not isinstance(result, list):
+            return []
+        return result
+
+    def get_erc721_transfers(
+        self,
+        wallet_address: str,
+        offset: int = 50,
+    ) -> list[dict]:
+        data = self._get({
+            "module": "account",
+            "action": "tokennfttx",
+            "address": wallet_address,
+            "page": "1",
+            "offset": str(offset),
+            "sort": "desc",
+        })
+        result = data.get("result")
+        if not isinstance(result, list):
+            return []
+        return result
+
+    def get_erc1155_transfers(
+        self,
+        wallet_address: str,
+        offset: int = 50,
+    ) -> list[dict]:
+        data = self._get({
+            "module": "account",
+            "action": "token1155tx",
+            "address": wallet_address,
+            "page": "1",
+            "offset": str(offset),
+            "sort": "desc",
         })
         result = data.get("result")
         if not isinstance(result, list):
@@ -140,6 +177,13 @@ class EtherscanClient:
             contract_code = self.get_contract_code(wallet_address)
             has_contract_code = bool(contract_code and contract_code != "0x")
             normal_transactions = self.get_normal_transactions(wallet_address)
+            recent_transactions = self.get_normal_transactions(
+                wallet_address,
+                offset=100,
+                sort="desc",
+            )
+            erc721_transfers = self.get_erc721_transfers(wallet_address)
+            erc1155_transfers = self.get_erc1155_transfers(wallet_address)
         except Exception as error:
             return {
                 "provider": "etherscan",
@@ -147,17 +191,34 @@ class EtherscanClient:
                 "message": f"Provider validation skipped after API error: {error}",
             }
 
+        transaction_sample = [*normal_transactions, *recent_transactions]
         transaction_timestamps = [
             int(transaction["timeStamp"])
-            for transaction in normal_transactions
+            for transaction in transaction_sample
             if transaction.get("timeStamp")
         ]
         unique_counterparties = {
             value.lower()
-            for transaction in normal_transactions
+            for transaction in transaction_sample
             for value in (transaction.get("from"), transaction.get("to"))
             if value and value.lower() != wallet_address.lower()
         }
+        contract_interactions = [
+            transaction
+            for transaction in transaction_sample
+            if transaction.get("input") not in {None, "", "0x"}
+        ]
+        contract_counterparties = {
+            transaction.get("to", "").lower()
+            for transaction in contract_interactions
+            if transaction.get("to")
+        }
+        counterparties = [
+            value.lower()
+            for transaction in transaction_sample
+            for value in (transaction.get("from"), transaction.get("to"))
+            if value and value.lower() != wallet_address.lower()
+        ]
 
         return {
             "provider": "etherscan",
@@ -165,7 +226,7 @@ class EtherscanClient:
             "native_balance_wei": native_balance_wei,
             "transaction_count": transaction_count,
             "has_contract_code": has_contract_code,
-            "normal_transaction_sample_size": len(normal_transactions),
+            "normal_transaction_sample_size": len(transaction_sample),
             "first_transaction_timestamp": (
                 min(transaction_timestamps) if transaction_timestamps else None
             ),
@@ -173,4 +234,11 @@ class EtherscanClient:
                 max(transaction_timestamps) if transaction_timestamps else None
             ),
             "unique_counterparty_count": len(unique_counterparties),
+            "contract_interaction_count": len(contract_interactions),
+            "unique_contract_counterparty_count": len(contract_counterparties),
+            "counterparty_sequence": counterparties,
+            "transaction_timestamps": transaction_timestamps,
+            "erc721_transfer_sample_size": len(erc721_transfers),
+            "erc1155_transfer_sample_size": len(erc1155_transfers),
+            "nft_transfer_sample_size": len(erc721_transfers) + len(erc1155_transfers),
         }

@@ -40,6 +40,19 @@ class WalletFeatures(BaseModel):
     activity_frequency_per_day: float | None = None
     unique_counterparty_count: int | None = None
     normal_transaction_sample_size: int | None = None
+    transaction_diversity_ratio: float | None = None
+    contract_interaction_count: int | None = None
+    contract_interaction_ratio: float | None = None
+    unique_contract_counterparty_count: int | None = None
+    transaction_entropy: float | None = None
+    max_transactions_per_hour: int | None = None
+    max_transactions_per_day: int | None = None
+    repeated_contract_loop_count: int | None = None
+    nft_transfer_sample_size: int | None = None
+    has_nft_activity: bool | None = None
+    alchemy_transfer_sample_size: int | None = None
+    alchemy_unique_counterparty_count: int | None = None
+    alchemy_transfer_categories: list[str] = []
     is_contract: bool | None = None
     feature_flags: list[str]
 

@@ -3,6 +3,7 @@ from app.db.repository import (
     store_wallet_check_snapshot,
     store_wallet_proof_snapshot,
 )
+from app.services.alchemy_client import AlchemyClient
 from app.services.etherscan_client import EtherscanClient
 from app.services.feature_service import extract_wallet_features
 from app.services.proof_service import generate_wallet_proof
@@ -15,6 +16,13 @@ def build_wallet_pipeline(wallet_address: str) -> dict:
     provider_profile = EtherscanClient().build_wallet_profile(
         validation.normalized_address
     )
+    alchemy_enrichment = AlchemyClient().build_wallet_enrichment(
+        validation.normalized_address
+    )
+    provider_profile = {
+        **provider_profile,
+        **alchemy_enrichment,
+    }
     features = extract_wallet_features(provider_profile)
 
     risk_flags = [*validation.risk_flags, *features["feature_flags"]]

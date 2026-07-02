@@ -52,6 +52,13 @@ The score starts at `0.50`, then adds or subtracts points based on wallet featur
 - `+0.08` if the wallet has at least 10 unique counterparties.
 - `+0.04` if the wallet has at least 3 unique counterparties.
 - `-0.08` if the wallet has more than 10 transactions but fewer than 3 unique counterparties.
+- `+0.05` if transaction diversity ratio is at least `0.35`.
+- `-0.12` if transaction diversity ratio is below `0.10` after at least 20 transactions.
+
+### Transaction Entropy
+
+- `+0.04` if normalized transaction entropy is at least `0.70`.
+- `-0.12` if normalized transaction entropy is below `0.25` after at least 20 transactions.
 
 ### Activity Frequency
 
@@ -59,9 +66,55 @@ The score starts at `0.50`, then adds or subtracts points based on wallet featur
 - `-0.18` if the wallet has more than `20` transactions per day and fewer than `5` unique counterparties.
 - `-0.08` if the wallet has more than `100` transactions per day.
 
+### Burst Activity
+
+- `-0.15` if at least 20 sampled transactions happen inside a one-hour window.
+- `-0.10` if at least 80 sampled transactions happen inside a one-day window.
+
+### Contract Interaction Behavior
+
+- `+0.02` if contract interaction ratio is at most `0.50`.
+- `-0.12` if contract interaction ratio is at least `0.80` after at least 20 transactions.
+- `-0.18` if repeated contract loop count is at least `10`.
+
 ### Contract Address
 
 - `-0.30` if the address has contract code.
+
+### Short Lifespan Wallets
+
+- `-0.15` if the wallet is less than 3 days old and already has at least 10 transactions.
+
+### NFT and Alchemy Enrichment
+
+- `+0.03` if Alchemy transfer enrichment is available.
+- `+0.04` if sampled ERC721 or ERC1155 NFT activity is present.
+
+## Week 5 Advanced Feature Inputs
+
+Week 5 adds the following computed features:
+
+- `transaction_diversity_ratio`
+- `contract_interaction_ratio`
+- `transaction_entropy`
+- `max_transactions_per_hour`
+- `max_transactions_per_day`
+- `repeated_contract_loop_count`
+- `nft_transfer_sample_size`
+- `has_nft_activity`
+- `alchemy_transfer_sample_size`
+- `alchemy_unique_counterparty_count`
+- `alchemy_transfer_categories`
+
+## Week 5 Risk Flags
+
+- `low_transaction_diversity`
+- `low_transaction_entropy`
+- `high_contract_interaction_ratio`
+- `hourly_burst_activity`
+- `daily_burst_activity`
+- `repeated_contract_loops`
+- `short_lifespan_wallet`
 
 ## Current Limitations
 

@@ -25,8 +25,23 @@ class FakeEtherscanClient:
         }
 
 
+class FakeAlchemyClient:
+    def build_wallet_enrichment(self, wallet_address: str) -> dict:
+        return {
+            "alchemy_provider_configured": True,
+            "alchemy_transfer_sample_size": 6,
+            "alchemy_outgoing_transfer_sample_size": 3,
+            "alchemy_incoming_transfer_sample_size": 3,
+            "alchemy_unique_counterparty_count": 4,
+            "alchemy_nft_transfer_sample_size": 2,
+            "alchemy_transfer_categories": ["erc20", "erc721"],
+            "alchemy_message": None,
+        }
+
+
 class WalletServiceTests(unittest.TestCase):
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
     @patch(
         "app.services.wallet_service.store_wallet_check_snapshot",
         return_value={
@@ -52,6 +67,7 @@ class WalletServiceTests(unittest.TestCase):
         self.assertNotIn("score_breakdown", result)
 
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
     def test_extract_wallet_feature_response_omits_score(self):
         result = extract_wallet_feature_response(
             "0x742d35cc6634c0532925a3b844bc454e4438f44e"
@@ -59,10 +75,13 @@ class WalletServiceTests(unittest.TestCase):
 
         self.assertIn("provider_profile", result)
         self.assertIn("features", result)
+        self.assertTrue(result["features"]["has_nft_activity"])
+        self.assertEqual(result["features"]["alchemy_transfer_sample_size"], 6)
         self.assertNotIn("confidence_score", result)
         self.assertNotIn("score_breakdown", result)
 
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
     def test_score_wallet_response_omits_provider_profile(self):
         result = score_wallet(
             "0x742d35cc6634c0532925a3b844bc454e4438f44e"
@@ -74,6 +93,7 @@ class WalletServiceTests(unittest.TestCase):
         self.assertNotIn("provider_profile", result)
 
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
     @patch(
         "app.services.wallet_service.store_wallet_check_snapshot",
         return_value={

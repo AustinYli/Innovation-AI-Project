@@ -9,6 +9,14 @@ except ImportError:
 load_dotenv()
 
 ALCHEMY_API_KEY = os.getenv("ALCHEMY_API_KEY")
+ALCHEMY_API_BASE_URL = os.getenv(
+    "ALCHEMY_API_BASE_URL",
+    (
+        f"https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_API_KEY}"
+        if ALCHEMY_API_KEY
+        else None
+    ),
+)
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
 ETHERSCAN_API_BASE_URL = os.getenv(
     "ETHERSCAN_API_BASE_URL",

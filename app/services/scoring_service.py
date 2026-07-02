@@ -55,6 +55,14 @@ def score_wallet_features(features: dict, existing_risk_flags: list[str]) -> dic
             "Live provider data was unavailable, so confidence is reduced.",
         )
 
+    if features.get("alchemy_transfer_sample_size") is not None:
+        score += _add_rule(
+            rules,
+            "alchemy_enrichment_available",
+            0.03,
+            "Alchemy transfer enrichment was available for this wallet.",
+        )
+
     balance_level = features.get("balance_level")
     if balance_level == "funded":
         score += _add_rule(
@@ -161,6 +169,7 @@ def score_wallet_features(features: dict, existing_risk_flags: list[str]) -> dic
 
     counterparty_count = features.get("unique_counterparty_count")
     transaction_count = features.get("transaction_count")
+    transaction_diversity_ratio = features.get("transaction_diversity_ratio")
     if counterparty_count is not None:
         if counterparty_count >= 10:
             score += _add_rule(
@@ -184,6 +193,59 @@ def score_wallet_features(features: dict, existing_risk_flags: list[str]) -> dic
                 "Wallet has activity but limited counterparty diversity.",
             )
             risk_flags.append("low_counterparty_diversity")
+
+    if transaction_diversity_ratio is not None and transaction_count:
+        if transaction_count >= 20 and transaction_diversity_ratio < 0.10:
+            score += _add_rule(
+                rules,
+                "low_transaction_diversity",
+                -0.12,
+                "Wallet activity is concentrated across very few unique counterparties.",
+            )
+            risk_flags.append("low_transaction_diversity")
+        elif transaction_diversity_ratio >= 0.35:
+            score += _add_rule(
+                rules,
+                "healthy_transaction_diversity",
+                0.05,
+                "Wallet has healthy transaction diversity across counterparties.",
+            )
+
+    transaction_entropy = features.get("transaction_entropy")
+    if transaction_entropy is not None and transaction_count:
+        if transaction_count >= 20 and transaction_entropy < 0.25:
+            score += _add_rule(
+                rules,
+                "low_transaction_entropy",
+                -0.12,
+                "Wallet transactions repeat a narrow behavior pattern.",
+            )
+            risk_flags.append("low_transaction_entropy")
+        elif transaction_entropy >= 0.70:
+            score += _add_rule(
+                rules,
+                "high_transaction_entropy",
+                0.04,
+                "Wallet transaction distribution looks varied.",
+            )
+
+    contract_interaction_ratio = features.get("contract_interaction_ratio")
+    if contract_interaction_ratio is not None and transaction_count:
+        if transaction_count >= 20 and contract_interaction_ratio >= 0.80:
+            score += _add_rule(
+                rules,
+                "high_contract_interaction_ratio",
+                -0.12,
+                "Most sampled transactions interact with contracts.",
+            )
+            risk_flags.append("high_contract_interaction_ratio")
+        elif contract_interaction_ratio <= 0.50:
+            score += _add_rule(
+                rules,
+                "balanced_contract_interactions",
+                0.02,
+                "Wallet activity is not dominated by contract calls.",
+            )
 
     activity_frequency = features.get("activity_frequency_per_day")
     if activity_frequency is not None:
@@ -210,6 +272,61 @@ def score_wallet_features(features: dict, existing_risk_flags: list[str]) -> dic
                 "Very high activity frequency may require additional review.",
             )
             risk_flags.append("high_velocity_activity")
+
+    max_transactions_per_hour = features.get("max_transactions_per_hour")
+    if max_transactions_per_hour is not None and max_transactions_per_hour >= 20:
+        score += _add_rule(
+            rules,
+            "hourly_burst_activity",
+            -0.15,
+            "Many transactions happened inside a one-hour window.",
+        )
+        risk_flags.append("hourly_burst_activity")
+
+    max_transactions_per_day = features.get("max_transactions_per_day")
+    if max_transactions_per_day is not None and max_transactions_per_day >= 80:
+        score += _add_rule(
+            rules,
+            "daily_burst_activity",
+            -0.10,
+            "Many transactions happened inside a one-day window.",
+        )
+        risk_flags.append("daily_burst_activity")
+
+    repeated_contract_loop_count = features.get("repeated_contract_loop_count")
+    if (
+        repeated_contract_loop_count is not None
+        and repeated_contract_loop_count >= 10
+    ):
+        score += _add_rule(
+            rules,
+            "repeated_contract_loops",
+            -0.18,
+            "Wallet repeatedly interacted with the same contract pattern.",
+        )
+        risk_flags.append("repeated_contract_loops")
+
+    if (
+        wallet_age_days is not None
+        and wallet_age_days < 3
+        and transaction_count
+        and transaction_count >= 10
+    ):
+        score += _add_rule(
+            rules,
+            "short_lifespan_wallet",
+            -0.15,
+            "Wallet became active very recently but already has meaningful activity.",
+        )
+        risk_flags.append("short_lifespan_wallet")
+
+    if features.get("has_nft_activity"):
+        score += _add_rule(
+            rules,
+            "nft_activity_present",
+            0.04,
+            "Wallet has sampled ERC721 or ERC1155 NFT activity.",
+        )
 
     if features.get("is_contract") is True:
         score += _add_rule(

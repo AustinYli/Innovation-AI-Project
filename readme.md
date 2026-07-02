@@ -15,6 +15,7 @@ Current implementation:
 - Reusable proof generation and verification
 - Supabase/Postgres snapshot storage
 - API key authentication, rate limiting, logging, and error handling
+- Advanced bot-detection scoring features for transaction diversity, entropy, burst activity, repeated contract loops, short lifespan wallets, contract interaction ratio, NFT activity, and Alchemy enrichment
 - React internal dashboard
 - Railway backend and frontend deployment configuration
 - Developer usage simulation and performance benchmark scripts
