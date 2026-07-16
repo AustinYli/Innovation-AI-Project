@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.services.wallet_service import (
+    analyze_wallet_sybil_response,
     extract_wallet_feature_response,
     generate_proof_response,
     ingest_wallet,
@@ -21,6 +22,20 @@ class FakeEtherscanClient:
             "first_transaction_timestamp": 1704067200,
             "last_transaction_timestamp": 1704931200,
             "unique_counterparty_count": 5,
+            "direct_counterparties": [
+                "0x1111111111111111111111111111111111111111",
+                "0x2222222222222222222222222222222222222222",
+            ],
+            "funding_sources": [
+                "0x1111111111111111111111111111111111111111"
+            ],
+            "transaction_graph_connections": [
+                {
+                    "source": "0x1111111111111111111111111111111111111111",
+                    "target": wallet_address,
+                    "transaction_count": 1,
+                }
+            ],
             "message": None,
         }
 
@@ -40,6 +55,20 @@ class FakeAlchemyClient:
 
 
 class WalletServiceTests(unittest.TestCase):
+    relationship_patch = patch(
+        "app.services.wallet_service.find_wallet_relationships",
+        return_value={
+            "database_status": "connected",
+            "related_wallets": [],
+        },
+    )
+
+    def setUp(self):
+        self.relationship_patch.start()
+
+    def tearDown(self):
+        self.relationship_patch.stop()
+
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
     @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
     @patch(
@@ -91,6 +120,21 @@ class WalletServiceTests(unittest.TestCase):
         self.assertIn("confidence_score", result)
         self.assertIn("score_breakdown", result)
         self.assertNotIn("provider_profile", result)
+
+    @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
+    @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)
+    def test_analyze_sybil_returns_focused_relationship_response(self):
+        result = analyze_wallet_sybil_response(
+            "0x742d35cc6634c0532925a3b844bc454e4438f44e"
+        )
+
+        self.assertEqual(result["relationship_data_status"], "connected")
+        self.assertEqual(result["cluster_size"], 1)
+        self.assertEqual(result["sybil_risk_level"], "low")
+        self.assertEqual(result["relationship_edges"], [])
+        self.assertEqual(len(result["behavior_fingerprint_hash"]), 64)
+        self.assertNotIn("features", result)
+        self.assertNotIn("score_breakdown", result)
 
     @patch("app.services.wallet_service.EtherscanClient", FakeEtherscanClient)
     @patch("app.services.wallet_service.AlchemyClient", FakeAlchemyClient)

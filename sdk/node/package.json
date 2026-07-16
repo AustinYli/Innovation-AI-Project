@@ -1,0 +1,8 @@
+{
+  "name": "@trustapi/sdk",
+  "version": "0.1.0",
+  "description": "Node.js client for the Proof-of-Human Trust API",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT"
+}

@@ -58,6 +58,18 @@ def run_simulation(client: TrustApiClient, wallet_address: str) -> dict:
         {"proof_id": proof_id},
     )
     dashboard = run_step("dashboard summary", "GET", "/dashboard/summary")
+    async_job = run_step(
+        "submit score job",
+        "POST",
+        "/jobs/score_wallet",
+        {"wallet_address": wallet_address},
+    )
+    job_status = run_step(
+        "check score job",
+        "GET",
+        f"/jobs/{async_job['job_id']}",
+    )
+    metrics = run_step("metrics", "GET", "/metrics")
 
     return {
         "simulation_status": "passed",
@@ -74,6 +86,9 @@ def run_simulation(client: TrustApiClient, wallet_address: str) -> dict:
         "confidence_score": wallet.get("confidence_score"),
         "proof_id": proof_id,
         "proof_status": verification.get("status"),
+        "async_job_id": async_job.get("job_id"),
+        "async_job_status": job_status.get("status"),
+        "request_count_observed": metrics.get("request_count"),
         "dashboard_total_wallets": dashboard.get("total_wallets"),
         "steps": steps,
     }

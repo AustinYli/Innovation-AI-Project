@@ -29,6 +29,8 @@ PROOF_SECRET = os.getenv("PROOF_SECRET") or TRUST_API_KEY or "dev-proof-secret"
 PROOF_VALID_FOR_HOURS = int(os.getenv("PROOF_VALID_FOR_HOURS", "24"))
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "120"))
+BACKGROUND_WORKERS = int(os.getenv("BACKGROUND_WORKERS", "4"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CORS_ORIGINS = [
     origin.strip()

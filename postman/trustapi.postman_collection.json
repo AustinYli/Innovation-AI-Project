@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "Proof-of-Human Trust API",
+    "description": "Postman collection for wallet trust scoring, proof generation, Sybil analysis, async jobs, and monitoring.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://innovation-ai-project-production.up.railway.app"
+    },
+    {
+      "key": "trust_api_key",
+      "value": "YOUR_TRUST_API_KEY"
+    },
+    {
+      "key": "wallet_address",
+      "value": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+    },
+    {
+      "key": "proof_id",
+      "value": "proof_replace_me"
+    },
+    {
+      "key": "job_id",
+      "value": "job_replace_me"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{trust_api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "Debug Env",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/debug/env"
+      }
+    },
+    {
+      "name": "Check Wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/check_wallet"
+      }
+    },
+    {
+      "name": "Extract Features",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/extract_features"
+      }
+    },
+    {
+      "name": "Score Wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/score_wallet"
+      }
+    },
+    {
+      "name": "Analyze Sybil",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/analyze_sybil"
+      }
+    },
+    {
+      "name": "Generate Proof",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/generate_proof"
+      }
+    },
+    {
+      "name": "Verify Proof",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"proof_id\":\"{{proof_id}}\"}"
+        },
+        "url": "{{base_url}}/verify_proof"
+      }
+    },
+    {
+      "name": "Submit Async Score Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"wallet_address\":\"{{wallet_address}}\"}"
+        },
+        "url": "{{base_url}}/jobs/score_wallet"
+      }
+    },
+    {
+      "name": "Get Job Status",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/jobs/{{job_id}}"
+      }
+    },
+    {
+      "name": "Metrics",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/metrics"
+      }
+    },
+    {
+      "name": "Cache Stats",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/cache/stats"
+      }
+    },
+    {
+      "name": "Dashboard Summary",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/dashboard/summary"
+      }
+    }
+  ]
+}

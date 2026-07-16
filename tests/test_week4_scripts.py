@@ -31,6 +31,11 @@ class FakeTrustApiClient:
                 "proof": {"proof_id": "proof_test"},
             },
             "/verify_proof": {"status": "active"},
+            "/jobs/score_wallet": {"job_id": "job_test", "status": "queued"},
+            "/jobs/job_test": {"status": "completed"},
+            "/metrics": {"request_count": 8},
+            "/cache/stats": {"entries": 1},
+            "/jobs/summary": {"total_jobs": 1},
             "/dashboard/summary": {"total_wallets": 104},
             "/dashboard/recent_wallets?limit=8": {"wallets": []},
             "/dashboard/flagged_wallets?limit=8": {"wallets": []},
@@ -52,7 +57,9 @@ class Week4ScriptTests(unittest.TestCase):
         self.assertEqual(result["simulation_status"], "passed")
         self.assertEqual(result["proof_id"], "proof_test")
         self.assertEqual(result["proof_status"], "active")
-        self.assertEqual(len(result["steps"]), 6)
+        self.assertEqual(result["async_job_id"], "job_test")
+        self.assertEqual(result["async_job_status"], "completed")
+        self.assertEqual(len(result["steps"]), 9)
         self.assertIn("trust_api_key", result["configured_environment_keys"])
         self.assertEqual(
             client.calls[4],
@@ -79,8 +86,8 @@ class Week4ScriptTests(unittest.TestCase):
         )
 
         self.assertEqual(result["benchmark_status"], "passed")
-        self.assertEqual(len(result["results"]), 5)
-        self.assertEqual(len(client.calls), 10)
+        self.assertEqual(len(result["results"]), 8)
+        self.assertEqual(len(client.calls), 16)
         self.assertNotIn("/check_wallet", [call[1] for call in client.calls])
 
 

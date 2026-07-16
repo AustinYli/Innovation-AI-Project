@@ -252,6 +252,114 @@ def _latest_scores_by_wallet(
     }
 
 
+def find_wallet_relationships(
+    normalized_wallet_address: str,
+    funding_sources: list[str],
+    direct_counterparties: list[str],
+    behavior_fingerprint_hash: str,
+) -> dict:
+    session_factory = get_session_factory()
+    if session_factory is None:
+        return {
+            "database_status": (
+                "skipped_database_invalid_url"
+                if get_database_error()
+                else "skipped_database_not_configured"
+            ),
+            "related_wallets": [],
+        }
+
+    current_funding_sources = set(funding_sources)
+    current_counterparties = set(direct_counterparties)
+
+    try:
+        with session_factory() as session:
+            latest_feature_ids = (
+                select(func.max(WalletFeatureSnapshot.id).label("id"))
+                .group_by(WalletFeatureSnapshot.wallet_id)
+                .subquery()
+            )
+            snapshots = session.scalars(
+                select(WalletFeatureSnapshot)
+                .where(
+                    WalletFeatureSnapshot.id.in_(
+                        select(latest_feature_ids.c.id)
+                    )
+                )
+                .options(joinedload(WalletFeatureSnapshot.wallet))
+            ).all()
+            related_wallets = []
+
+            for snapshot in snapshots:
+                wallet = snapshot.wallet
+                if wallet.normalized_wallet_address == normalized_wallet_address:
+                    continue
+
+                peer_profile = snapshot.provider_profile or {}
+                peer_features = snapshot.features or {}
+                peer_funding_sources = set(
+                    peer_profile.get("funding_sources") or []
+                )
+                peer_counterparties = set(
+                    peer_profile.get("direct_counterparties")
+                    or peer_profile.get("counterparty_sequence")
+                    or []
+                )
+                shared_funding_sources = sorted(
+                    current_funding_sources.intersection(peer_funding_sources)
+                )
+                counterparty_union = current_counterparties.union(
+                    peer_counterparties
+                )
+                counterparty_intersection = current_counterparties.intersection(
+                    peer_counterparties
+                )
+                overlap_ratio = (
+                    len(counterparty_intersection) / len(counterparty_union)
+                    if counterparty_union
+                    else 0.0
+                )
+                same_fingerprint = (
+                    peer_features.get("behavior_fingerprint_hash")
+                    == behavior_fingerprint_hash
+                )
+                connection_reasons = []
+
+                if shared_funding_sources:
+                    connection_reasons.append("shared_funding_source")
+                if same_fingerprint:
+                    connection_reasons.append("behavior_fingerprint")
+                if (
+                    len(counterparty_intersection) >= 3
+                    and overlap_ratio >= 0.50
+                ):
+                    connection_reasons.append("transaction_graph_overlap")
+
+                if not connection_reasons:
+                    continue
+
+                related_wallets.append({
+                    "wallet_id": wallet.id,
+                    "normalized_wallet_address": (
+                        wallet.normalized_wallet_address
+                    ),
+                    "shared_funding_sources": shared_funding_sources,
+                    "same_behavior_fingerprint": same_fingerprint,
+                    "counterparty_overlap_ratio": round(overlap_ratio, 4),
+                    "connection_reasons": connection_reasons,
+                })
+
+            return {
+                "database_status": "connected",
+                "related_wallets": related_wallets,
+            }
+    except SQLAlchemyError:
+        return {
+            "database_status": _database_unavailable_status(),
+            "related_wallets": [],
+        }
+
+
 def get_dashboard_summary() -> dict:
     session_factory = get_session_factory()
     if session_factory is None:

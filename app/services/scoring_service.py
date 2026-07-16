@@ -328,6 +328,28 @@ def score_wallet_features(features: dict, existing_risk_flags: list[str]) -> dic
             "Wallet has sampled ERC721 or ERC1155 NFT activity.",
         )
 
+    sybil_risk_level = features.get("sybil_risk_level")
+    sybil_risk_score = features.get("sybil_risk_score")
+    if sybil_risk_level == "high":
+        score += _add_rule(
+            rules,
+            "high_sybil_risk",
+            -0.30,
+            f"Network relationship analysis found high Sybil risk ({sybil_risk_score:.2f}).",
+        )
+        risk_flags.append("high_sybil_risk")
+    elif sybil_risk_level == "medium":
+        score += _add_rule(
+            rules,
+            "medium_sybil_risk",
+            -0.15,
+            f"Network relationship analysis found medium Sybil risk ({sybil_risk_score:.2f}).",
+        )
+        risk_flags.append("medium_sybil_risk")
+
+    for sybil_signal in features.get("sybil_signals", []):
+        risk_flags.append(sybil_signal)
+
     if features.get("is_contract") is True:
         score += _add_rule(
             rules,

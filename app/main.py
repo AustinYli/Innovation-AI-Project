@@ -1,8 +1,10 @@
 import logging
+import asyncio
+import json
 import time
 
 from fastapi import Depends, FastAPI, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.auth import require_api_key
 from app.core.config import CORS_ORIGINS
@@ -18,9 +20,12 @@ from app.schemas import (
     WalletCheckRequest,
     WalletCheckResponse,
     WalletFeatureExtractionResponse,
+    WalletJobStatusResponse,
+    WalletJobSubmitResponse,
     WalletProofResponse,
     WalletProofVerifyResponse,
     WalletScoreResponse,
+    WalletSybilAnalysisResponse,
 )
 from app.services.dashboard_service import (
     get_dashboard_summary_response,
@@ -31,7 +36,11 @@ from app.services.health_service import (
     get_debug_env_response,
     get_health_response,
 )
+from app.services.cache_service import wallet_pipeline_cache
+from app.services.job_service import TERMINAL_STATUSES, background_job_queue
+from app.services.metrics_service import metrics_recorder
 from app.services.wallet_service import (
+    analyze_wallet_sybil_response,
     extract_wallet_feature_response,
     generate_proof_response,
     ingest_wallet,
@@ -72,6 +81,12 @@ async def log_requests(request: Request, call_next):
         response = await call_next(request)
     except Exception:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        metrics_recorder.observe_request(
+            request.method,
+            request.url.path,
+            500,
+            elapsed_ms,
+        )
         logger.exception(
             "request_failed method=%s path=%s elapsed_ms=%s",
             request.method,
@@ -81,6 +96,12 @@ async def log_requests(request: Request, call_next):
         raise
 
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+    metrics_recorder.observe_request(
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
+    )
     logger.info(
         "request_complete method=%s path=%s status_code=%s elapsed_ms=%s",
         request.method,
@@ -142,6 +163,22 @@ def debug_env():
     return get_debug_env_response()
 
 
+@app.get(
+    "/metrics",
+    dependencies=protected_endpoint,
+)
+def metrics():
+    return metrics_recorder.snapshot()
+
+
+@app.get(
+    "/cache/stats",
+    dependencies=protected_endpoint,
+)
+def cache_stats():
+    return wallet_pipeline_cache.stats()
+
+
 @app.post(
     "/check_wallet",
     response_model=WalletCheckResponse,
@@ -167,6 +204,71 @@ def extract_features(request: WalletCheckRequest):
 )
 def score_wallet_endpoint(request: WalletCheckRequest):
     return score_wallet(request.wallet_address)
+
+
+@app.post(
+    "/jobs/score_wallet",
+    response_model=WalletJobSubmitResponse,
+    dependencies=protected_endpoint,
+)
+def submit_score_wallet_job(request: WalletCheckRequest):
+    return background_job_queue.submit(
+        job_type="score_wallet",
+        wallet_address=request.wallet_address,
+        handler=score_wallet,
+    )
+
+
+@app.get(
+    "/jobs/summary",
+    dependencies=protected_endpoint,
+)
+def jobs_summary():
+    return background_job_queue.summary()
+
+
+@app.get(
+    "/jobs/{job_id}",
+    response_model=WalletJobStatusResponse,
+    dependencies=protected_endpoint,
+)
+def job_status(job_id: str):
+    return background_job_queue.get(job_id)
+
+
+@app.get(
+    "/jobs/{job_id}/events",
+    dependencies=protected_endpoint,
+)
+async def job_events(job_id: str):
+    async def event_stream():
+        last_status = None
+        for _ in range(60):
+            job = background_job_queue.get(job_id)
+            status = job["status"]
+            if status != last_status or status in TERMINAL_STATUSES:
+                yield f"data: {json.dumps(job)}\n\n"
+                last_status = status
+            if status in TERMINAL_STATUSES or status == "not_found":
+                return
+            await asyncio.sleep(1)
+
+        job = background_job_queue.get(job_id)
+        yield f"data: {json.dumps(job)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+    )
+
+
+@app.post(
+    "/analyze_sybil",
+    response_model=WalletSybilAnalysisResponse,
+    dependencies=protected_endpoint,
+)
+def analyze_sybil(request: WalletCheckRequest):
+    return analyze_wallet_sybil_response(request.wallet_address)
 
 
 @app.post(

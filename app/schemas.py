@@ -1,8 +1,34 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class WalletCheckRequest(BaseModel):
     wallet_address: str
+
+
+class WalletJobSubmitResponse(BaseModel):
+    job_id: str
+    job_type: str
+    status: str
+    wallet_address: str
+    created_at: str
+    started_at: str | None = None
+    completed_at: str | None = None
+    found: bool
+    message: str
+
+
+class WalletJobStatusResponse(BaseModel):
+    job_id: str
+    found: bool
+    status: str
+    message: str
+    job_type: str | None = None
+    wallet_address: str | None = None
+    created_at: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    result: dict | None = None
+    error: str | None = None
 
 
 class ProofVerifyRequest(BaseModel):
@@ -53,6 +79,24 @@ class WalletFeatures(BaseModel):
     alchemy_transfer_sample_size: int | None = None
     alchemy_unique_counterparty_count: int | None = None
     alchemy_transfer_categories: list[str] = []
+    behavior_fingerprint_hash: str
+    funding_sources: list[str]
+    funding_source_count: int
+    primary_funding_source: str | None = None
+    transaction_graph_connection_count: int
+    relationship_data_status: str
+    cluster_id: str
+    cluster_size: int
+    cluster_methods: list[str]
+    related_wallet_count: int
+    related_wallet_addresses: list[str]
+    relationship_edges: list[dict] = Field(default_factory=list)
+    shared_funding_wallet_count: int
+    behavior_match_wallet_count: int
+    max_counterparty_overlap_ratio: float
+    sybil_risk_score: float
+    sybil_risk_level: str
+    sybil_signals: list[str]
     is_contract: bool | None = None
     feature_flags: list[str]
 
@@ -90,6 +134,29 @@ class WalletScoreResponse(BaseModel):
     confidence_score: float
     score_breakdown: ScoreBreakdown
     risk_flags: list[str]
+    message: str
+
+
+class WalletSybilAnalysisResponse(BaseModel):
+    wallet_address: str
+    normalized_wallet_address: str
+    is_valid: bool
+    behavior_fingerprint_hash: str
+    funding_sources: list[str]
+    transaction_graph_connection_count: int
+    relationship_data_status: str
+    cluster_id: str
+    cluster_size: int
+    cluster_methods: list[str]
+    related_wallet_count: int
+    related_wallet_addresses: list[str]
+    relationship_edges: list[dict] = Field(default_factory=list)
+    shared_funding_wallet_count: int
+    behavior_match_wallet_count: int
+    max_counterparty_overlap_ratio: float
+    sybil_risk_score: float
+    sybil_risk_level: str
+    sybil_signals: list[str]
     message: str
 
 
@@ -199,6 +266,8 @@ class DebugRuntimeConfig(BaseModel):
     rate_limit_requests: int
     rate_limit_window_seconds: int
     proof_valid_for_hours: int
+    cache_ttl_seconds: int
+    background_workers: int
     log_level: str
 
 

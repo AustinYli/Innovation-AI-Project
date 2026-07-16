@@ -138,6 +138,35 @@ class ScoringServiceTests(unittest.TestCase):
         self.assertIn("nft_activity_present", rule_names)
         self.assertIn("high_transaction_entropy", rule_names)
 
+    def test_high_sybil_risk_lowers_trust_score(self):
+        features = {
+            "data_quality": "live_provider",
+            "balance_level": "funded",
+            "activity_level": "moderate",
+            "wallet_age_days": 180,
+            "unique_counterparty_count": 8,
+            "transaction_count": 40,
+            "activity_frequency_per_day": 1.2,
+            "is_contract": False,
+            "feature_flags": [],
+            "sybil_risk_level": "high",
+            "sybil_risk_score": 0.82,
+            "sybil_signals": [
+                "shared_funding_source",
+                "matching_behavior_fingerprint",
+            ],
+        }
+
+        result = score_wallet_features(features, [])
+        rule_names = [
+            rule["rule"] for rule in result["score_breakdown"]["rules"]
+        ]
+
+        self.assertIn("high_sybil_risk", rule_names)
+        self.assertIn("high_sybil_risk", result["risk_flags"])
+        self.assertIn("shared_funding_source", result["risk_flags"])
+        self.assertLess(result["confidence_score"], 0.75)
+
 
 if __name__ == "__main__":
     unittest.main()

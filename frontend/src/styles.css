@@ -192,6 +192,11 @@ button:disabled {
   background: var(--green);
 }
 
+.sybilButton {
+  margin-bottom: 16px;
+  background: #6d4aff;
+}
+
 .errorBox {
   margin-top: 14px;
   border-left: 4px solid var(--red);
@@ -215,6 +220,313 @@ button:disabled {
 .dashboardOverview {
   display: grid;
   gap: 20px;
+}
+
+.sybilView {
+  display: grid;
+  gap: 20px;
+}
+
+.sybilHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border-left: 5px solid #6d4aff;
+}
+
+.sybilHeader p:last-child {
+  max-width: 650px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.riskBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.risk-low {
+  border-color: rgba(19, 185, 129, 0.45);
+  background: #e9fbf4;
+  color: #087653;
+}
+
+.risk-medium {
+  border-color: rgba(248, 195, 58, 0.65);
+  background: #fff8dd;
+  color: #7b5700;
+}
+
+.risk-high {
+  border-color: rgba(223, 75, 75, 0.4);
+  background: #fff0f0;
+  color: #9d2f2f;
+}
+
+.graphPanel {
+  overflow: hidden;
+}
+
+.graphTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.graphLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.graphLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.currentDot {
+  background: #6d4aff;
+}
+
+.funderDot {
+  background: var(--yellow);
+}
+
+.peerDot {
+  background: var(--green);
+}
+
+.graphViewport {
+  overflow-x: auto;
+  background-color: #f8fafc;
+}
+
+.graphCanvas {
+  position: relative;
+  width: 100%;
+  min-width: 680px;
+  height: 500px;
+}
+
+.graphEdges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.edge {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
+.edgeFunding {
+  stroke: #d49a00;
+  stroke-dasharray: 5 5;
+}
+
+.edgeShared {
+  stroke: var(--red);
+  stroke-width: 3;
+}
+
+.edgeBehavior {
+  stroke: #6d4aff;
+}
+
+.edgeGraph {
+  stroke: var(--green);
+}
+
+.edgeFaint {
+  opacity: 0.28;
+  stroke-width: 1.5;
+}
+
+.graphNode {
+  position: absolute;
+  z-index: 2;
+  width: 150px;
+  min-height: 66px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 9px 20px rgba(24, 34, 53, 0.14);
+  color: var(--ink);
+  text-align: left;
+}
+
+.graphNode:hover:not(:disabled) {
+  transform: translate(-50%, calc(-50% - 2px));
+}
+
+.graphNode strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodeType {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.node-current {
+  border-color: #6d4aff;
+  background: #ece8ff;
+}
+
+.node-current .nodeType {
+  color: #4e2ed2;
+}
+
+.node-funder {
+  border-color: #d9a900;
+  background: #fff7ce;
+}
+
+.node-funder .nodeType {
+  color: #765a00;
+}
+
+.node-peer {
+  border-color: var(--green);
+  background: #e8faf4;
+}
+
+.node-peer .nodeType {
+  color: #087653;
+}
+
+.graphNode.nodeActive {
+  outline: 4px solid rgba(15, 132, 255, 0.16);
+  border-color: var(--blue);
+}
+
+.emptyCluster {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  transform: translateX(-50%);
+  border: 1px dashed #b7c2d0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.nodeInspector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 76px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.nodeInspector strong {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.nodeInspector p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-align: right;
+}
+
+.sybilDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.evidencePanel {
+  padding: 20px;
+}
+
+.signalList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signalList span {
+  border: 1px solid rgba(223, 75, 75, 0.28);
+  border-radius: 5px;
+  padding: 8px 10px;
+  background: #fff5f5;
+  color: #8f2d2d;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.methodRows {
+  display: grid;
+  gap: 11px;
+}
+
+.methodRows div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  color: var(--ink);
+  font-size: 0.84rem;
+  text-transform: capitalize;
+}
+
+.methodMark {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border: 2px solid #6d4aff;
+  border-radius: 2px;
 }
 
 .metricGrid {
@@ -499,6 +811,10 @@ pre {
   .distributionGrid {
     grid-template-columns: 1fr;
   }
+
+  .sybilDetailGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
@@ -509,7 +825,9 @@ pre {
 
   .topbar,
   .sectionHeader,
-  .proofTitleRow {
+  .proofTitleRow,
+  .sybilHeader,
+  .graphTopline {
     display: grid;
   }
 
@@ -524,6 +842,18 @@ pre {
   }
 
   dd {
+    text-align: left;
+  }
+
+  .graphCanvas {
+    height: 460px;
+  }
+
+  .nodeInspector {
+    grid-template-columns: 1fr;
+  }
+
+  .nodeInspector p {
     text-align: left;
   }
 }

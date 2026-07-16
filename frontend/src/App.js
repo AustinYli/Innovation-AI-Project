@@ -46,6 +46,7 @@ function DashboardApp() {
   const [checkResult, setCheckResult] = useState(null);
   const [proofResult, setProofResult] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null);
+  const [sybilResult, setSybilResult] = useState(null);
   const [dashboardSummary, setDashboardSummary] = useState(null);
   const [recentWallets, setRecentWallets] = useState([]);
   const [flaggedWallets, setFlaggedWallets] = useState([]);
@@ -58,6 +59,7 @@ function DashboardApp() {
     if (activeView === "check") return checkResult;
     if (activeView === "proof") return proofResult;
     if (activeView === "verify") return verifyResult;
+    if (activeView === "sybil") return sybilResult;
     return null;
   }, [activeView, checkResult, proofResult, verifyResult]);
   const healthLabel = useMemo(() => {
@@ -174,6 +176,18 @@ function DashboardApp() {
     }
   }
 
+  async function analyzeSybil() {
+    const data = await callApi(
+      "/analyze_sybil",
+      { wallet_address: walletAddress },
+      "sybil",
+    );
+    if (data) {
+      setSybilResult(data);
+      setActiveView("sybil");
+    }
+  }
+
   async function verifyProof() {
     const data = await callApi(
       "/verify_proof",
@@ -237,6 +251,11 @@ function DashboardApp() {
             loadingAction === "proof" ? "Generating..." : "Generate Proof",
           ),
         ),
+        h("button", {
+          className: "secondaryButton sybilButton",
+          onClick: analyzeSybil,
+          disabled: loadingAction !== "",
+        }, loadingAction === "sybil" ? "Mapping cluster..." : "Analyze Sybil Cluster"),
         h("label", null,
           h("span", null, "Proof ID"),
           h("input", {
@@ -264,6 +283,7 @@ function DashboardApp() {
         activeView === "check" && h(CheckWalletResult, { result: checkResult }),
         activeView === "proof" && h(ProofCard, { proofResult }),
         activeView === "verify" && h(VerifyProofResult, { result: verifyResult }),
+        activeView === "sybil" && h(SybilAnalysisResult, { result: sybilResult }),
         activeView === "dashboard" && h(DashboardOverview, {
           summary: dashboardSummary,
           recentWallets,
@@ -429,6 +449,207 @@ function VerifyProofResult({ result }) {
       h("div", null,
         h("dt", null, "Message"),
         h("dd", null, result.message),
+      ),
+    ),
+  );
+}
+
+function riskClass(level) {
+  return `riskBadge risk-${String(level || "unknown").toLowerCase()}`;
+}
+
+function relationshipStatusLabel(status) {
+  if (status === "connected") return "Peer index connected";
+  if (String(status || "").startsWith("skipped_")) return "Peer index unavailable";
+  return "Peer index not checked";
+}
+
+function graphPeerPositions(count) {
+  const rows = count > 3 ? 2 : 1;
+  return Array.from({ length: count }, (_, index) => {
+    const row = rows === 2 && index >= 3 ? 1 : 0;
+    const rowIndex = row ? index - 3 : index;
+    const rowCount = row ? count - 3 : Math.min(count, 3);
+    return {
+      x: ((rowIndex + 1) / (rowCount + 1)) * 76 + 12,
+      y: row ? 91 : 76,
+    };
+  });
+}
+
+function SybilAnalysisResult({ result }) {
+  const [selectedNode, setSelectedNode] = useState(null);
+  if (!result) return h(EmptyState);
+
+  const visibleFunders = (result.funding_sources || []).slice(0, 3);
+  const visibleEdges = (result.relationship_edges || []).slice(0, 6);
+  const peerPositions = graphPeerPositions(visibleEdges.length);
+  const currentNode = {
+    id: result.normalized_wallet_address,
+    type: "current",
+    x: 50,
+    y: 46,
+    label: "Analyzed wallet",
+    value: result.normalized_wallet_address,
+    detail: `${result.sybil_risk_level} Sybil risk`,
+  };
+  const funderNodes = visibleFunders.map((address, index) => ({
+    id: `funder-${address}`,
+    type: "funder",
+    x: ((index + 1) / (visibleFunders.length + 1)) * 76 + 12,
+    y: 13,
+    label: index === 0 ? "Primary funder" : "Funding source",
+    value: address,
+    detail: "Early inbound transfer",
+  }));
+  const peerNodes = visibleEdges.map((edge, index) => ({
+    id: `peer-${edge.target}`,
+    type: "peer",
+    x: peerPositions[index].x,
+    y: peerPositions[index].y,
+    label: "Related wallet",
+    value: edge.target,
+    detail: edge.connection_reasons?.join(" + ") || "Graph connection",
+    edge,
+  }));
+  const nodes = [currentNode, ...funderNodes, ...peerNodes];
+  const activeNode = selectedNode
+    ? nodes.find((node) => node.id === selectedNode) || currentNode
+    : currentNode;
+
+  return h("section", { className: "sybilView" },
+    h("section", { className: "panel sybilHeader" },
+      h("div", null,
+        h("p", { className: "eyebrow" }, "Network intelligence"),
+        h("h2", null, "Sybil relationship map"),
+        h("p", null, `Cluster ${String(result.cluster_id || "").replace("cluster_", "")} links funding, behavior, and transaction overlap signals.`),
+      ),
+      h("span", { className: riskClass(result.sybil_risk_level) },
+        `${result.sybil_risk_level} risk`,
+      ),
+    ),
+    h("div", { className: "metricGrid sybilMetrics" },
+      h(MetricCard, {
+        label: "Sybil risk",
+        value: formatPercent(result.sybil_risk_score),
+        detail: `${result.sybil_risk_level} network risk`,
+      }),
+      h(MetricCard, {
+        label: "Cluster size",
+        value: formatNumber(result.cluster_size),
+        detail: `${formatNumber(result.related_wallet_count)} related wallets`,
+      }),
+      h(MetricCard, {
+        label: "Shared funding",
+        value: formatNumber(result.shared_funding_wallet_count),
+        detail: `${formatNumber(result.funding_sources?.length || 0)} funding sources`,
+      }),
+      h(MetricCard, {
+        label: "Graph overlap",
+        value: formatPercent(result.max_counterparty_overlap_ratio),
+        detail: "Maximum counterparty overlap",
+      }),
+    ),
+    h("section", { className: "panel graphPanel" },
+      h("div", { className: "graphTopline" },
+        h("div", null,
+          h("p", { className: "eyebrow" }, "Cluster topology"),
+          h("h2", null, "Wallet relationship graph"),
+        ),
+        h("div", { className: "graphLegend", "aria-label": "Graph legend" },
+          h("span", null, h("i", { className: "legendDot currentDot" }), "Analyzed"),
+          h("span", null, h("i", { className: "legendDot funderDot" }), "Funder"),
+          h("span", null, h("i", { className: "legendDot peerDot" }), "Related"),
+        ),
+      ),
+      h("div", { className: "graphViewport" },
+        h("div", { className: "graphCanvas" },
+          h("svg", {
+            className: "graphEdges",
+            viewBox: "0 0 100 100",
+            preserveAspectRatio: "none",
+            "aria-hidden": "true",
+          },
+            funderNodes.map((node) => h("line", {
+              key: `fund-${node.id}`,
+              x1: node.x,
+              y1: node.y,
+              x2: currentNode.x,
+              y2: currentNode.y,
+              className: "edge edgeFunding",
+            })),
+            peerNodes.map((node) => h("line", {
+              key: `peer-${node.id}`,
+              x1: currentNode.x,
+              y1: currentNode.y,
+              x2: node.x,
+              y2: node.y,
+              className: `edge ${
+                node.edge.shared_funding_sources?.length
+                  ? "edgeShared"
+                  : node.edge.connection_reasons?.includes("behavior_fingerprint")
+                    ? "edgeBehavior"
+                    : "edgeGraph"
+              }`,
+            })),
+            peerNodes.flatMap((peer) => funderNodes
+              .filter((funder) => peer.edge.shared_funding_sources?.includes(funder.value))
+              .map((funder) => h("line", {
+                key: `shared-${funder.id}-${peer.id}`,
+                x1: funder.x,
+                y1: funder.y,
+                x2: peer.x,
+                y2: peer.y,
+                className: "edge edgeFunding edgeFaint",
+              }))),
+          ),
+          nodes.map((node) => h("button", {
+            key: node.id,
+            className: `graphNode node-${node.type} ${activeNode.id === node.id ? "nodeActive" : ""}`,
+            style: { left: `${node.x}%`, top: `${node.y}%` },
+            onClick: () => setSelectedNode(node.id),
+            title: node.value,
+            type: "button",
+          },
+            h("span", { className: "nodeType" }, node.label),
+            h("strong", null, compactAddress(node.value)),
+          )),
+          visibleEdges.length === 0 && h("div", { className: "emptyCluster" },
+            "No related stored wallets yet",
+          ),
+        ),
+      ),
+      h("div", { className: "nodeInspector" },
+        h("div", null,
+          h("span", { className: "metricLabel" }, activeNode.label),
+          h("strong", null, activeNode.value),
+        ),
+        h("p", null, activeNode.detail),
+      ),
+    ),
+    h("div", { className: "sybilDetailGrid" },
+      h("section", { className: "panel evidencePanel" },
+        h("div", { className: "sectionHeader" },
+          h("h2", null, "Detection signals"),
+          h("span", null, `${result.sybil_signals?.length || 0} active`),
+        ),
+        result.sybil_signals?.length
+          ? h("div", { className: "signalList" },
+            result.sybil_signals.map((signal) => h("span", { key: signal }, signal.replaceAll("_", " "))),
+          )
+          : h("p", { className: "emptyTableText" }, "No strong Sybil signals found."),
+      ),
+      h("section", { className: "panel evidencePanel" },
+        h("div", { className: "sectionHeader" },
+          h("h2", null, "Cluster methods"),
+          h("span", null, relationshipStatusLabel(result.relationship_data_status)),
+        ),
+        h("div", { className: "methodRows" },
+          (result.cluster_methods || []).map((method) => h("div", { key: method },
+            h("span", { className: "methodMark" }),
+            h("strong", null, method.replaceAll("_", " ")),
+          )),
+        ),
       ),
     ),
   );

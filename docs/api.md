@@ -172,13 +172,127 @@ Use this when another app needs to check whether a saved proof is still `active`
 /check_wallet      High-level wallet trust summary
 /extract_features  Internal/debug feature extraction view
 /score_wallet      Detailed scoring view with rule breakdown
+/analyze_sybil     Focused wallet relationships, clustering, and Sybil risk
 /generate_proof    Creates and stores a reusable trust proof
 /verify_proof      Checks whether a proof is valid right now
+/jobs/score_wallet Submits scoring to a background worker
+/jobs/{job_id}     Checks background scoring job status
+/jobs/{job_id}/events Streams near real-time job status updates
+/metrics           Runtime request, latency, error, and job metrics
+/cache/stats       Wallet pipeline cache health
 /health            Production readiness check
 /debug/env         Safe environment configuration check
 /dashboard/summary          Dashboard totals from Supabase/Postgres
 /dashboard/recent_wallets   Latest stored wallets and scores
 /dashboard/flagged_wallets  Latest wallets with risk flags
+```
+
+## Week 6 Sybil Analysis
+
+Analyze wallet relationships, behavior clustering, and Sybil risk:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/analyze_sybil" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY" \
+  -d '{"wallet_address":"0x742d35Cc6634C0532925a3b844Bc454e4438f44e"}'
+```
+
+Important response fields:
+
+```text
+behavior_fingerprint_hash
+funding_sources
+transaction_graph_connection_count
+cluster_id
+cluster_size
+cluster_methods
+related_wallet_count
+related_wallet_addresses
+relationship_edges
+shared_funding_wallet_count
+behavior_match_wallet_count
+max_counterparty_overlap_ratio
+sybil_risk_score
+sybil_risk_level
+sybil_signals
+```
+
+The endpoint compares the wallet with the latest stored feature snapshot for other wallets. Analyze and store multiple wallets through `/check_wallet` to populate useful peer data.
+
+## Week 7 Production Hardening
+
+### Submit async score job
+
+```bash
+curl -X POST "http://127.0.0.1:8000/jobs/score_wallet" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY" \
+  -d '{"wallet_address":"0x742d35Cc6634C0532925a3b844Bc454e4438f44e"}'
+```
+
+Example response:
+
+```json
+{
+  "job_id": "job_abc123",
+  "job_type": "score_wallet",
+  "status": "queued",
+  "wallet_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "created_at": "2026-07-15T12:00:00+00:00",
+  "started_at": null,
+  "completed_at": null,
+  "found": true,
+  "message": "Background job is queued."
+}
+```
+
+### Check async job status
+
+```bash
+curl -X GET "http://127.0.0.1:8000/jobs/job_abc123" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
+```
+
+When complete, `result` contains the same detailed output as `/score_wallet`.
+
+### Stream async job events
+
+```bash
+curl -N -X GET "http://127.0.0.1:8000/jobs/job_abc123/events" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
+```
+
+This uses server-sent events so a frontend can update as the job moves through queued, running, completed, or failed states.
+
+### Metrics
+
+```bash
+curl -X GET "http://127.0.0.1:8000/metrics" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
+```
+
+Returns uptime, request count, error rate, latency, status-code counts, path counts, and background job counts.
+
+### Cache stats
+
+```bash
+curl -X GET "http://127.0.0.1:8000/cache/stats" \
+  -H "X-API-Key: YOUR_TRUST_API_KEY"
+```
+
+Returns cache enabled status, TTL, entry count, hits, misses, and hit rate.
+
+## Week 8 Developer Assets
+
+Developer-facing assets:
+
+```text
+sdk/python
+sdk/node
+postman/trustapi.postman_collection.json
+examples/creator-platform-verification
+docs/final-demo-presentation.md
 ```
 
 ## Week 4 Dashboard Flow

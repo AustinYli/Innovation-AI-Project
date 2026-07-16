@@ -91,6 +91,9 @@ def run_benchmark(
     endpoints = [
         ("health", "GET", "/health", None),
         ("debug env", "GET", "/debug/env", None),
+        ("metrics", "GET", "/metrics", None),
+        ("cache stats", "GET", "/cache/stats", None),
+        ("jobs summary", "GET", "/jobs/summary", None),
         ("dashboard summary", "GET", "/dashboard/summary", None),
         ("recent wallets", "GET", "/dashboard/recent_wallets?limit=8", None),
         ("flagged wallets", "GET", "/dashboard/flagged_wallets?limit=8", None),

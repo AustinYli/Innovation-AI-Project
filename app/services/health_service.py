@@ -101,6 +101,8 @@ def get_debug_env_response() -> dict:
             "rate_limit_requests": config.RATE_LIMIT_REQUESTS,
             "rate_limit_window_seconds": config.RATE_LIMIT_WINDOW_SECONDS,
             "proof_valid_for_hours": config.PROOF_VALID_FOR_HOURS,
+            "cache_ttl_seconds": config.CACHE_TTL_SECONDS,
+            "background_workers": config.BACKGROUND_WORKERS,
             "log_level": config.LOG_LEVEL,
         },
         "message": "Environment check loaded without exposing secret values.",

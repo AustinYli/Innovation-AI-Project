@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 from urllib.request import urlopen
+from collections import Counter
 import json
 import ssl
 
@@ -191,7 +192,13 @@ class EtherscanClient:
                 "message": f"Provider validation skipped after API error: {error}",
             }
 
-        transaction_sample = [*normal_transactions, *recent_transactions]
+        transaction_by_hash = {
+            transaction.get("hash", f"sample-{index}"): transaction
+            for index, transaction in enumerate(
+                [*normal_transactions, *recent_transactions]
+            )
+        }
+        transaction_sample = list(transaction_by_hash.values())
         transaction_timestamps = [
             int(transaction["timeStamp"])
             for transaction in transaction_sample
@@ -219,6 +226,41 @@ class EtherscanClient:
             for value in (transaction.get("from"), transaction.get("to"))
             if value and value.lower() != wallet_address.lower()
         ]
+        funding_sources = []
+        for transaction in sorted(
+            normal_transactions,
+            key=lambda item: int(item.get("timeStamp") or 0),
+        ):
+            sender = transaction.get("from", "").lower()
+            recipient = transaction.get("to", "").lower()
+            if (
+                sender
+                and recipient == wallet_address.lower()
+                and sender != wallet_address.lower()
+                and transaction.get("isError", "0") == "0"
+                and int(transaction.get("value") or 0) > 0
+                and sender not in funding_sources
+            ):
+                funding_sources.append(sender)
+            if len(funding_sources) >= 5:
+                break
+
+        graph_edge_counts = Counter(
+            (
+                transaction.get("from", "").lower(),
+                transaction.get("to", "").lower(),
+            )
+            for transaction in transaction_sample
+            if transaction.get("from") and transaction.get("to")
+        )
+        transaction_graph_connections = [
+            {
+                "source": source,
+                "target": target,
+                "transaction_count": count,
+            }
+            for (source, target), count in sorted(graph_edge_counts.items())
+        ]
 
         return {
             "provider": "etherscan",
@@ -237,6 +279,9 @@ class EtherscanClient:
             "contract_interaction_count": len(contract_interactions),
             "unique_contract_counterparty_count": len(contract_counterparties),
             "counterparty_sequence": counterparties,
+            "direct_counterparties": sorted(unique_counterparties),
+            "funding_sources": funding_sources,
+            "transaction_graph_connections": transaction_graph_connections,
             "transaction_timestamps": transaction_timestamps,
             "erc721_transfer_sample_size": len(erc721_transfers),
             "erc1155_transfer_sample_size": len(erc1155_transfers),

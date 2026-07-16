@@ -90,6 +90,12 @@ The score starts at `0.50`, then adds or subtracts points based on wallet featur
 - `+0.03` if Alchemy transfer enrichment is available.
 - `+0.04` if sampled ERC721 or ERC1155 NFT activity is present.
 
+### Week 6 Sybil Risk
+
+- `-0.15` if network analysis reports `medium` Sybil risk.
+- `-0.30` if network analysis reports `high` Sybil risk.
+- Individual Sybil signals are copied into the final `risk_flags`.
+
 ## Week 5 Advanced Feature Inputs
 
 Week 5 adds the following computed features:
@@ -115,6 +121,35 @@ Week 5 adds the following computed features:
 - `daily_burst_activity`
 - `repeated_contract_loops`
 - `short_lifespan_wallet`
+
+## Week 6 Relationship and Sybil Features
+
+- `behavior_fingerprint_hash`
+- `funding_sources`
+- `transaction_graph_connection_count`
+- `cluster_id`
+- `cluster_size`
+- `cluster_methods`
+- `related_wallet_count`
+- `shared_funding_wallet_count`
+- `behavior_match_wallet_count`
+- `max_counterparty_overlap_ratio`
+- `sybil_risk_score`
+- `sybil_risk_level`
+- `sybil_signals`
+
+## Week 6 Risk Flags
+
+- `medium_sybil_risk`
+- `high_sybil_risk`
+- `shared_funding_source`
+- `matching_behavior_fingerprint`
+- `high_graph_overlap`
+- `very_high_graph_overlap`
+- `coordinated_burst_pattern`
+- `repeated_contract_pattern`
+- `short_lifespan_pattern`
+- `low_behavior_diversity`
 
 ## Current Limitations
 

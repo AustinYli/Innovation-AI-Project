@@ -51,6 +51,8 @@ class HealthServiceTests(unittest.TestCase):
     @patch("app.services.health_service.config.RATE_LIMIT_REQUESTS", 60)
     @patch("app.services.health_service.config.RATE_LIMIT_WINDOW_SECONDS", 60)
     @patch("app.services.health_service.config.PROOF_VALID_FOR_HOURS", 24)
+    @patch("app.services.health_service.config.CACHE_TTL_SECONDS", 120)
+    @patch("app.services.health_service.config.BACKGROUND_WORKERS", 4)
     @patch("app.services.health_service.config.LOG_LEVEL", "INFO")
     def test_debug_env_reports_presence_without_secret_values(self):
         result = get_debug_env_response()
@@ -59,6 +61,8 @@ class HealthServiceTests(unittest.TestCase):
         self.assertTrue(result["environment"]["trust_api_key"]["configured"])
         self.assertTrue(result["environment"]["database_url"]["configured"])
         self.assertEqual(result["runtime"]["rate_limit_requests"], 60)
+        self.assertEqual(result["runtime"]["cache_ttl_seconds"], 120)
+        self.assertEqual(result["runtime"]["background_workers"], 4)
         self.assertNotIn("trust-secret", rendered)
         self.assertNotIn("postgresql://secret", rendered)
         self.assertNotIn("etherscan-secret", rendered)

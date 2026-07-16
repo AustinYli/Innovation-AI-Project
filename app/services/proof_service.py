@@ -54,7 +54,9 @@ def generate_wallet_proof(pipeline: dict, score: dict) -> dict:
             "risk_flags": score["risk_flags"],
         },
     }
-    behavior_fingerprint_hash = _hmac_hex(fingerprint_payload)
+    behavior_fingerprint_hash = pipeline["features"].get(
+        "behavior_fingerprint_hash"
+    ) or _hmac_hex(fingerprint_payload)
     proof_id = "proof_" + _hmac_hex(
         f"{behavior_fingerprint_hash}:{issued_at.isoformat()}"
     )[:32]

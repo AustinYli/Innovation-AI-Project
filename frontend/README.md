@@ -1,5 +1,7 @@
 # Wallet Trust Dashboard
 
+The dashboard includes an interactive Week 6 Sybil relationship map. Enter a wallet and select **Analyze Sybil Cluster** to visualize funding sources, related wallets, cluster evidence, and network risk.
+
 React dashboard for the FastAPI wallet trust backend.
 
 ## Run locally
